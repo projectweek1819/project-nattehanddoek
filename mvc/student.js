@@ -253,7 +253,7 @@ function chronometer2(){
     }
 
     const controller = {onTimerTick, onKeyDown};
-    const model = {timePassed, reset, toggle};
+    const model = {timePassed, toggle, reset};
     return {controller, model}
 }
 
@@ -309,16 +309,28 @@ function circle3(){
 function drawing(){
 
     function render(state){
-        if (onMouseDown){
-            return [{type: "circle", center:state.position, radius: 5, color:"green"}]
+        if (state.addMode){
+            return [{type: "circle", center:state.position, radius: 2, color:"red"}]
         }
         else{
-            return [{type: "circle", center:state.position, radius: 5, color:"red"}]
+            let x = [];
+            for (let i = 0; i < state.dots.length ; i++) {
+                x.push({type: "circle", center: state.dots[i], radius: 2, color: "green"})
+            }
+            x.push({type: "circle", center:state.position, radius: 5, color:"red"});
+            return x
         }
     }
 
     function moveTo(state, position){
-        return {position: position, dots: state.dots, addMode: state.addMode}
+        if (state.addMode){
+            let dots = state.dots.slice();
+            dots.push(position);
+            return {position: position, dots: dots, addMode: state.addMode}
+        }
+        else {
+            return {position: position, dots: state.dots, addMode: state.addMode}
+        }
     }
 
     function setAddMode(state, addMode){
@@ -327,19 +339,87 @@ function drawing(){
     }
 
     function onMouseMove(state, args){
-        return {position: args.position, dots: state.dots, addMode: state.addMode}
+        if (state.addMode){
+            return {position: args.position, dots: [args.position], addMode: state.addMode}
+        }
+        else{
+            return {position: args.position, dots: state.dots, addMode: state.addMode}
+        }
     }
 
     function onMouseDown(state, args){
-        return {position: args.position, dots: state.dots, addMode: state.addMode}
+        if(state.addMode){
+            return {position: state.position, dots: state.dots, addMode: state.addMode}
+        }
+        else {
+            return {position: state.position, dots: state.dots, addMode: !state.addMode}
+        }
     }
 
     function onMouseUp(state, args){
-        return {position: args.position, dots: state.dots, addMode: !state.addMode}
+        if(state.addMode){
+            return {position: state.position, dots: state.dots, addMode: !state.addMode}
+        }
+        else {
+            return {position: state.position, dots: state.dots, addMode: state.addMode}
+        }
     }
 
     const view = {render};
     const model = {moveTo, setAddMode};
     const controller = {onMouseMove, onMouseDown, onMouseUp};
     return {view, model, controller}
+}
+
+function random(){
+    function throwDie(state){
+        let foo = (4578 * state.rng ** 2 - 976161 * state.rng + 6156489) % 79729693;
+        return {rng: (4578 * state.rng ** 2 - 976161 * state.rng + 6156489) % 79729693, dieValue: foo % 6 + 1 };
+    }
+
+
+    function onKeyDown(state, args){
+        if (args.key === " "){
+            return throwDie(state);
+        }
+    }
+
+    function render(state){
+        return [{type: "text", position: {x: 50, y: 50}, string: state.dieValue.toString() }];
+    }
+
+    const view = {render};
+    const model = {throwDie};
+    const controller = {onKeyDown};
+    return {view, model, controller};
+}
+
+function random2(){
+    function nextRandom(n) {
+        return (4578 * n ** 2 - 976161 * n + 6156489) % 79729693;
+    }
+    function throwDie(state) {
+        const value = nextRandom(state.rng);
+        return [value % 6 + 1, { ...state, rng: value }];
+    }
+    function generateGrade(state) {
+        const [a, state2] = throwDie(state);
+        const [b, state3] = throwDie(state2);
+        const [c, state4] = throwDie(state3);
+        return { ...state4, grade: a + b + c };
+    }
+
+
+    function onKeyDown(state, args) {
+        return model.generateGrade(state);
+    }
+
+    function render(state) {
+        return [{ type: 'text', position: { x: 50, y: 50 }, string: state.grade.toString() }];
+    }
+
+    const view = {render};
+    const model = {nextRandom, throwDie, generateGrade};
+    const controller = {onKeyDown};
+    return {view, model, controller};
 }
